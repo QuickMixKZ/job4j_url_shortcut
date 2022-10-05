@@ -12,7 +12,7 @@ public class Registration {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-
+    @Column(unique = true)
     private String site;
     private String login;
     private String password;

@@ -12,7 +12,7 @@ public class URL {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    @Column(columnDefinition = "UNIQUE")
+    @Column(unique = true)
     private String url;
     private String key;
     @Column(name = "calls_number",

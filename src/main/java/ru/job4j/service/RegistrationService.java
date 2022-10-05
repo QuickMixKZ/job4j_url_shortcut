@@ -1,6 +1,8 @@
 package ru.job4j.service;
 
 import net.bytebuddy.utility.RandomString;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import ru.job4j.dto.SiteDTO;
@@ -15,24 +17,21 @@ public class RegistrationService {
 
     private final RegistrationRepository registrationRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final int stringLength;
 
     public RegistrationService(RegistrationRepository registrationRepository,
-                               BCryptPasswordEncoder passwordEncoder) {
+                               BCryptPasswordEncoder passwordEncoder,
+                               @Value("${string.length}") int stringLength) {
         this.registrationRepository = registrationRepository;
         this.passwordEncoder = passwordEncoder;
+        this.stringLength = stringLength;
     }
 
     public UserDTO register(SiteDTO siteDTO) {
         UserDTO result = new UserDTO();
-        Optional<Registration> registrationDb = registrationRepository.findBySite(siteDTO.getSite());
-        if (registrationDb.isPresent()) {
-            result.setRegistration(false);
-        } else {
-            result.setRegistration(true);
-            String login = RandomString.make(8);
-            String password = RandomString.make(8);
-            result.setLogin(login);
-            result.setPassword(password);
+        result.setLogin(RandomString.make(stringLength));
+        result.setPassword(RandomString.make(stringLength));
+        try {
             registrationRepository.save(
                     new Registration(
                             siteDTO.getSite(),
@@ -40,6 +39,10 @@ public class RegistrationService {
                             passwordEncoder.encode(result.getPassword())
                     )
             );
+            result.setRegistration(true);
+        } catch (DataIntegrityViolationException e) {
+            result = new UserDTO();
+            result.setRegistration(false);
         }
         return result;
     }

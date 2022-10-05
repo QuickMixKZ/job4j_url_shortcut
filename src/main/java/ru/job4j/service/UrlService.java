@@ -1,6 +1,8 @@
 package ru.job4j.service;
 
 import net.bytebuddy.utility.RandomString;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -18,35 +20,37 @@ public class UrlService {
 
     private final UrlRepository urlRepository;
     private final RegistrationService registrationService;
+    private final int stringLength;
 
-    public UrlService(UrlRepository urlRepository, RegistrationService registrationService) {
+    public UrlService(UrlRepository urlRepository,
+                      RegistrationService registrationService,
+                      @Value("${string.length}") int stringLength) {
         this.urlRepository = urlRepository;
         this.registrationService = registrationService;
+        this.stringLength = stringLength;
     }
 
     public UrlDTO convert(UrlDTO urlDTO) {
-        Optional<URL> urlDb = urlRepository.findByUrl(urlDTO.getUrl());
-        urlDb.ifPresentOrElse(
-                url -> urlDTO.setKey(url.getKey()),
-                () -> {
-                    urlDTO.setKey(RandomString.make(8));
-                    Registration currentUser =
-                            registrationService.findByLogin(
-                                    SecurityContextHolder
-                                            .getContext()
-                                            .getAuthentication()
-                                            .getName()
-                            ).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized"));
-                    urlRepository.save(
-                            new URL(
-                                    urlDTO.getUrl(),
-                                    urlDTO.getKey(),
-                                    currentUser
-                            )
-                    );
-
-                }
-        );
+        Registration currentUser =
+                registrationService.findByLogin(
+                        SecurityContextHolder
+                                .getContext()
+                                .getAuthentication()
+                                .getName()
+                ).orElseThrow(() -> new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized"));
+        urlDTO.setKey(RandomString.make(stringLength));
+        try {
+            urlRepository.save(
+                    new URL(
+                            urlDTO.getUrl(),
+                            urlDTO.getKey(),
+                            currentUser
+                    )
+            );
+        } catch (DataIntegrityViolationException e) {
+            Optional<URL> urlDb = urlRepository.findByUrl(urlDTO.getUrl());
+            urlDTO.setKey(urlDb.get().getKey());
+        }
         return urlDTO;
     }
 
