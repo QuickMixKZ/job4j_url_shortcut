@@ -15,6 +15,7 @@ import ru.job4j.filter.JWTAuthenticationFilter;
 import ru.job4j.filter.JWTAuthorizationFilter;
 import ru.job4j.service.UserDetailsServiceImpl;
 
+import static ru.job4j.filter.JWTAuthenticationFilter.REDIRECT_URL;
 import static ru.job4j.filter.JWTAuthenticationFilter.REG_URL;
 
 @EnableWebSecurity
@@ -33,6 +34,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable().authorizeRequests()
                 .antMatchers(HttpMethod.POST, REG_URL).permitAll()
+                .antMatchers(HttpMethod.GET, REDIRECT_URL).permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .addFilter(new JWTAuthenticationFilter(authenticationManager()))
